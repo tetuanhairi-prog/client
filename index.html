@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sistem HMA - Hairi Mustafa Associates</title>
+  <style>
+    /* UI UTAMA (HITAM EMAS) */
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; padding: 20px; }
+    .container { max-width: 1100px; margin: auto; background: #111; border-radius: 12px; border: 1px solid #333; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    header { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; padding: 20px; text-align: center; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    header .hdr-left { text-align:left; }
+    header .hdr-right { text-align:right; }
+    nav { background: #222; padding: 10px; text-align: center; border-bottom: 1px solid #444; }
+    nav button { background: #333; color: #FFD700; border: none; padding: 10px 18px; margin: 0 3px; border-radius: 6px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+    nav button.active, nav button:hover { background: #FFD700; color: #000; }
+    .content { padding: 30px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* TAB JANA RESIT (PUTIH) */
+    #page-invoice { background: #ffffff; color: #000; padding: 30px; border-radius: 8px; border: 1px solid #ddd; }
+    #page-invoice h2, #page-invoice label { color: #000; }
+    #page-invoice input, #page-invoice select { background: #f0f0f0; color: #000; border: 1px solid #ccc; }
+
+    /* MODAL & AUTH */
+    .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.7); overflow:auto; }
+    .modal .modal-box { background:#fff; color:#000; margin:5% auto; padding:20px; width:90%; max-width:420px; border-radius:8px; box-sizing:border-box; }
+    .modal input { width:100%; padding:10px; margin:6px 0; box-sizing:border-box; }
+    .modal .muted { font-size:12px; color:#666; margin-top:6px; }
+
+    /* FORM & TABLES UMUM */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 15px; }
+    .action-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; background: rgba(255,215,0,0.06); padding: 10px; border-radius: 8px; border: 1px solid #333; }
+    label { display: block; margin-bottom: 5px; font-size: 13px; color: #FFD700; font-weight: bold; }
+    input, select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; box-sizing: border-box; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; font-size: 13px; }
+    th { color: #FFD700; text-transform: uppercase; }
+    .btn { background: #FFD700; color: #000; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+    .btn-sm { padding: 6px 12px; font-size: 11px; }
+    .btn-sec { background: #444; color: #fff; }
+    .btn-del { background: #c0392b; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+    /* RECEIPT A5 */
+    #receipt { background: white; color: black; padding: 30px; margin: 20px auto; display: none; border: 1px solid #000; width: 148mm; min-height: 210mm; box-sizing: border-box; }
+    .lh-container { display: flex; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+    .lh-logo { width: 80px; height: auto; margin-right: 15px; }
+    .receipt-title { text-align: center; font-size: 16px; font-weight: bold; margin: 15px 0; text-decoration: underline; color: #000; }
+    .receipt-meta { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; color: #000; }
+    .receipt-table { width: 100%; border: 1px solid #000; border-collapse: collapse; }
+    .receipt-table th, .receipt-table td { border: 1px solid #000; padding: 8px; color: #000; }
+    .total-box { float: right; margin-top: 10px; border: 2px solid #000; padding: 8px 15px; font-size: 14px; font-weight: bold; background: #f9f9f9; color: #000; }
+    .sig-area { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 50px; text-align: center; }
+    .sig-box { border-top: 1px solid #000; padding-top: 5px; font-size: 10px; color: #000; font-weight: bold; }
+
+    .small { font-size: 12px; }
+    #statusLine { font-size:12px; color:#fff; opacity:0.9; }
+
+    @media print {
+      @page { size: A5 portrait; margin: 5mm; }
+      body * { visibility: hidden; }
+      #receipt, #receipt * { visibility: visible; }
+      #receipt { position: absolute; left: 0; top: 0; width: 100%; border: none; padding: 10mm; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container no-print">
+  <header>
+    <div class="hdr-left">
+      <h1 style="margin:0">HAIRI MUSTAFA ASSOCIATES</h1>
+      <p style="margin:0; font-size:12px;">Peguam Syarie & Pesuruhjaya Sumpah</p>
+    </div>
+    <div class="hdr-right">
+      <div id="authArea">
+        <span id="currentUser" class="small"></span>
+        <button class="btn-sm btn-sec" id="btnSettings" onclick="openSettings()">Tetapan</button>
+        <button class="btn-sm btn-sec" id="btnLogout" onclick="logout()" style="display:none">Logout</button>
+        <button class="btn-sm btn-sec" id="btnLogin" onclick="openLogin()">Login</button>
+      </div>
+      <div id="statusLine" style="margin-top:6px"></div>
+    </div>
+  </header>
+
+<nav>
+  <button onclick="showPage('clients')" id="nav-clients" class="active">Guaman</button>
+  <button onclick="showPage('pjs')" id="nav-pjs">PJS</button>
+  <button onclick="showPage('inventory')" id="nav-inventory">Servis</button>
+  <button onclick="showPage('invoice')" id="nav-invoice">Jana Resit</button>
+</nav>
+
+<div class="content">
+  <div id="page-clients" class="page active">
+    <h2>Pendaftaran Kes Guaman</h2>
+    <div class="action-bar">
+      <button class="btn btn-sm btn-sec" onclick="exportData('clients', ['Name','Detail','Balance'])">Eksport Guaman</button>
+      <label class="btn btn-sm btn-sec">Import Guaman <input type="file" onchange="importData(event, 'clients')" style="display:none;"></label>
+      <div style="margin-left:auto;">
+        <button class="btn-sm btn-sec" onclick="syncAllToServer()">Sync Semua ke Server</button>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div><label>Nama Pelanggan</label><input type="text" id="clientName"></div>
+      <div><label>Butiran Kes</label><input type="text" id="clientDetail"></div>
+      <div><label>Fee Dipersetujui (RM)</label><input type="number" id="clientFee"></div>
+    </div>
+    <button class="btn" onclick="addClient()">Daftar Pelanggan</button>
+    <table>
+      <thead><tr><th>Nama Pelanggan</th><th>Kes</th><th>Baki (RM)</th><th width="150">Tindakan</th></tr></thead>
+      <tbody id="clientsBody"></tbody>
+    </table>
+  </div>
+
+  <div id="page-pjs" class="page">
+    <h2>Rekod Pesuruhjaya Sumpah (PJS)</h2>
+    <div class="action-bar">
+      <button class="btn btn-sm btn-sec" onclick="exportData('pjsData', ['Date','Name','Detail','Amount'])">Eksport PJS</button>
+      <label class="btn btn-sm btn-sec">Import PJS <input type="file" onchange="importData(event, 'pjsData')" style="display:none;"></label>
+    </div>
+    <div class="form-grid">
+      <div><label>Tarikh</label><input type="date" id="pjsDate"></div>
+      <div><label>Nama</label><input type="text" id="pjsName"></div>
+      <div><label>Butiran</label><input type="text" id="pjsDetail"></div>
+      <div><label>Amaun (RM)</label><input type="number" id="pjsAmount"></div>
+    </div>
+    <button class="btn" onclick="addPjs()">Simpan Rekod</button>
+    <table>
+      <thead><tr><th>Tarikh</th><th>Nama</th><th>Butiran</th><th>Amaun (RM)</th><th>Aksi</th></tr></thead>
+      <tbody id="pjsBody"></tbody>
+    </table>
+  </div>
+
+  <div id="page-inventory" class="page">
+    <h2>Senarai Perkhidmatan & Harga</h2>
+    <div class="action-bar">
+      <button class="btn btn-sm btn-sec" onclick="exportData('inventory', ['Name','Price'])">Eksport Servis</button>
+      <label class="btn btn-sm btn-sec">Import Servis <input type="file" onchange="importData(event, 'inventory')" style="display:none;"></label>
+    </div>
+    <div class="form-grid">
+      <div><label>Nama Perkhidmatan</label><input type="text" id="itemName"></div>
+      <div><label>Harga Standard (RM)</label><input type="number" id="itemPrice"></div>
+    </div>
+    <button class="btn" onclick="addItem()">Simpan Item</button>
+    <table>
+      <thead><tr><th>Perkhidmatan</th><th>Harga (RM)</th><th>Aksi</th></tr></thead>
+      <tbody id="inventoryBody"></tbody>
+    </table>
+  </div>
+
+  <div id="page-invoice" class="page">
+    <h2>Penyediaan Resit Rasmi (A5)</h2>
+    <div class="form-grid">
+      <div><label>No. Resit</label><input type="text" id="invNo" readonly></div>
+      <div><label>Tarikh</label><input type="date" id="invDate"></div>
+      <div><label>Pilih Pelanggan</label><select id="customerSelect"></select></div>
+    </div>
+    <div style="margin-bottom:15px;"><label>Pilih Item Servis</label><select id="itemSelect" onchange="addItemToInvoice()"></select></div>
+    <table>
+      <thead><tr><th style="color:#000;">Butiran Pembayaran</th><th style="text-align:right; color:#000;">Amaun (RM)</th><th width="30"></th></tr></thead>
+      <tbody id="invoiceItemsBody"></tbody>
+    </table>
+    <div style="text-align:right; margin-top:20px;">
+      <h2 id="invTotalText">JUMLAH: RM 0.00</h2>
+      <button class="btn" style="background:#000; color:#fff;" onclick="processPayment()">Cetak & Muat Turun PDF</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Ledger Modal -->
+<div id="ledgerModal" class="modal">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 id="ledgerTitle">Fail Pelanggan</h3>
+      <div>
+        <button class="btn btn-sm btn-sec" onclick="printFullStatement()">Cetak Penyata Fail</button>
+        <button class="btn-del" onclick="closeLedger()">X</button>
+      </div>
+    </div>
+    <hr>
+    <div class="form-grid">
+      <div><label>Tarikh</label><input type="date" id="ledgerDate"></div>
+      <div><label>Keterangan</label><input type="text" id="ledgerDesc" placeholder="Invoice / Bayaran"></div>
+      <div><label>Amaun (RM)</label><input type="number" id="ledgerAmt" placeholder="Cth: 500 atau -500"></div>
+      <div><label> </label><button class="btn" style="width:100%" onclick="addToLedger()">Tambah</button></div>
+    </div>
+    <table style="color:#000; border:1px solid #ccc;">
+      <thead><tr style="background:#eee;"><th>Tarikh</th><th>Keterangan</th><th style="text-align:right;">Amaun (RM)</th><th width="30"></th></tr></thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+    <h3 id="ledgerTotal" style="text-align:right; margin-top:10px;">Baki: RM 0.00</h3>
+  </div>
+</div>
+
+<!-- Receipt -->
+<div id="receipt">
+  <div class="lh-container">
+    <img id="logoImg" src="" class="lh-logo" style="display:none;">
+    <div style="color:#000">
+      <h1 style="margin:0; font-size:18px;">HAIRI MUSTAFA ASSOCIATES</h1>
+      <p style="margin:0; font-size:9px; font-weight:bold;">PEGUAM SYARIE & PESURUHJAYA SUMPAH</p>
+      <p style="margin:0; font-size:9px;">Lot 02, Bangunan Arked Mara, 09100 Baling, Kedah</p>
+      <p style="margin:0; font-size:9px;">Tel: 011 5653 1310  Email: tetuanhairi@gmail.com</p>
+    </div>
+  </div>
+  <div class="receipt-title" id="rTitle">RESIT RASMI</div>
+  <div class="receipt-meta">
+    <div>Diterima daripada:<br><span id="rCust" style="font-weight:bold; text-transform:uppercase;"></span></div>
+    <div style="text-align:right;">No. Dokumen: <span id="rNo"></span><br>Tarikh: <span id="rDate"></span></div>
+  </div>
+  <table class="receipt-table">
+    <thead><tr><th>Butiran Pembayaran</th><th style="text-align:right; width:100px;">Amaun (RM)</th></tr></thead>
+    <tbody id="rTable"></tbody>
+  </table>
+  <div style="overflow:auto;"><div class="total-box" id="rTotalLabel">JUMLAH: <span id="rTotal"></span></div></div>
+  <div class="sig-area">
+    <div class="sig-box">Tandatangan Pelanggan</div>
+    <div class="sig-box">Hairi Mustafa Associates</div>
+  </div>
+</div>
+
+<!-- Login / Register Modal -->
+<div id="loginModal" class="modal">
+  <div class="modal-box">
+    <h3>Login / Daftar</h3>
+    <div id="authTabs" style="display:flex; gap:8px; margin-bottom:8px;">
+      <button class="btn-sm btn-sec" onclick="showAuthTab('login')">Login</button>
+      <button class="btn-sm btn-sec" onclick="showAuthTab('register')">Daftar</button>
+    </div>
+    <div id="authLogin" style="display:block;">
+      <input id="loginUser" placeholder="Nama pengguna" />
+      <input id="loginPass" placeholder="Kata laluan" type="password" />
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="login()">Login</button>
+        <button class="btn-sec" onclick="closeLogin()">Batal</button>
+      </div>
+      <div class="muted">Sesi akan disimpan setempat pada penyemak imbas.</div>
+    </div>
+    <div id="authRegister" style="display:none;">
+      <input id="regUser" placeholder="Nama pengguna (username)" />
+      <input id="regPass" placeholder="Kata laluan" type="password" />
+      <input id="regPass2" placeholder="Ulang kata laluan" type="password" />
+      <div style="display:flex; gap:8px;">
+        <button class="btn" onclick="registerUser()">Daftar</button>
+        <button class="btn-sec" onclick="closeLogin()">Batal</button>
+      </div>
+      <div class="muted">Kata laluan disimpan sebagai hash (SHA-256) pada localStorage.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal">
+  <div class="modal-box">
+    <h3>Tetapan / Server Sync</h3>
+    <label>Google Apps Script URL (endpoint JSON)</label>
+    <input id="cfgServer" placeholder="https://script.google.com/macros/s/XXXX/exec" />
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn" onclick="saveSettings()">Simpan</button>
+      <button class="btn-sec" onclick="testServer()">Uji Sambungan</button>
+      <button class="btn-del" onclick="closeSettings()">Tutup</button>
+    </div>
+    <div id="serverResponse" class="muted" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- html2pdf (untuk eksport PDF automatik) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<script>
+/*
+  Perubahan penting:
+  - Pengurusan pengguna ringkas (register/login) menggunakan SHA-256.
+  - Server sync yang menunggu balasan JSON dari Google Apps Script (endpoint mesti CORS-enabled).
+  - Muat turun PDF automatik selepas resit dihasilkan menggunakan html2pdf.
+  - Kekalkan fungsi-fungsi sedia ada (ledger, invoice, import/export) dan menambah pilihan sync manual.
+*/
+
+/* ===== Storage & State ===== */
+let clients = JSON.parse(localStorage.getItem('clients') || '[]');
+let pjsData = JSON.parse(localStorage.getItem('pjsData') || '[]');
+let inventory = JSON.parse(localStorage.getItem('inventory') || '[]');
+let invCounter = parseInt(localStorage.getItem('invCounter') || '1', 10);
+if(isNaN(invCounter) || invCounter < 1) invCounter = 1;
+let currentInvoiceItems = [];
+let activeIdx = null;
+
+/* Auth */
+let users = JSON.parse(localStorage.getItem('hma_users') || '{}'); // { username: {hash, role, created_at} }
+let currentUser = localStorage.getItem('hma_current_user') || null;
+
+const DEFAULT_SERVER = localStorage.getItem('hma_server_url') || '';
+
+/* Init on load */
+window.onload = function() {
+  // load logo if any
+  const cachedLogo = localStorage.getItem('cachedLogo');
+  if(cachedLogo) { document.getElementById('logoImg').src = cachedLogo; document.getElementById('logoImg').style.display='block'; }
+  document.getElementById('pjsDate').valueAsDate = new Date();
+  renderTables();
+  updateAuthUI();
+};
+
+/* ===== Utility: SHA-256 hex ===== */
+async function sha256Hex(str) {
+  const enc = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ===== Auth UI & Functions ===== */
+function openLogin(){ document.getElementById('loginModal').style.display='block'; showAuthTab('login'); }
+function closeLogin(){ document.getElementById('loginModal').style.display='none'; }
+function showAuthTab(tab) {
+  document.getElementById('authLogin').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('authRegister').style.display = tab==='register' ? 'block' : 'none';
+}
+
+async function registerUser(){
+  const user = (document.getElementById('regUser').value||'').trim();
+  const p1 = document.getElementById('regPass').value || '';
+  const p2 = document.getElementById('regPass2').value || '';
+  if(!user) return alert('Sila masukkan nama pengguna.');
+  if(p1.length < 6) return alert('Kata laluan mesti sekurang-kurangnya 6 aksara.');
+  if(p1 !== p2) return alert('Kata laluan tidak sepadan.');
+  if(users[user]) return alert('Nama pengguna sudah wujud.');
+  const hash = await sha256Hex(p1);
+  users[user] = { hash, role: 'user', created_at: new Date().toISOString() };
+  localStorage.setItem('hma_users', JSON.stringify(users));
+  alert('Pendaftaran berjaya. Sila login.');
+  document.getElementById('regUser').value=''; document.getElementById('regPass').value=''; document.getElementById('regPass2').value='';
+  showAuthTab('login');
+}
+
+async function login(){
+  const user = (document.getElementById('loginUser').value||'').trim();
+  const pass = document.getElementById('loginPass').value || '';
+  if(!user) return alert('Sila masukkan nama pengguna.');
+  if(!users[user]) return alert('Pengguna tidak ditemui.');
+  const hash = await sha256Hex(pass);
+  if(hash !== users[user].hash) return alert('Kata laluan salah.');
+  currentUser = user;
+  localStorage.setItem('hma_current_user', user);
+  updateAuthUI();
+  closeLogin();
+}
+
+function logout(){
+  localStorage.removeItem('hma_current_user');
+  currentUser = null;
+  updateAuthUI();
+}
+
+function updateAuthUI() {
+  document.getElementById('currentUser').textContent = currentUser ? `Log masuk sebagai: ${currentUser}` : '';
+  document.getElementById('btnLogout').style.display = currentUser ? 'inline-block' : 'none';
+  document.getElementById('btnLogin').style.display = currentUser ? 'none' : 'inline-block';
+  // require login to use app? optional: if no user, still allow but show warning
+  document.getElementById('statusLine').textContent = currentUser ? `Pengguna: ${currentUser}` : 'Mod tanpa login — aktiviti akan disimpan secara tempatan sahaja.';
+}
+
+/* ===== Settings Modal ===== */
+function openSettings(){
+  document.getElementById('cfgServer').value = localStorage.getItem('hma_server_url') || '';
+  document.getElementById('settingsModal').style.display = 'block';
+  document.getElementById('serverResponse').textContent = '';
+}
+function closeSettings(){ document.getElementById('settingsModal').style.display = 'none'; }
+function saveSettings(){
+  const url = (document.getElementById('cfgServer').value||'').trim();
+  localStorage.setItem('hma_server_url', url);
+  document.getElementById('serverResponse').textContent = 'Disimpan.';
+  setTimeout(()=>document.getElementById('settingsModal').style.display='none', 800);
+}
+async function testServer(){
+  const url = (document.getElementById('cfgServer').value||'').trim();
+  if(!url) return alert('Sila masukkan URL endpoint Google Apps Script yang menyokong CORS dan bertindak balas JSON.');
+  document.getElementById('serverResponse').textContent = 'Menghantar ujian...';
+  try {
+    const resp = await fetch(url + '?action=test', { method:'GET', mode:'cors' });
+    const json = await resp.json();
+    document.getElementById('serverResponse').textContent = 'Respons server: ' + (json && json.message ? json.message : JSON.stringify(json));
+  } catch (e) {
+    document.getElementById('serverResponse').textContent = 'Ralat sambungan: ' + e.message;
+    console.error(e);
+  }
+}
+
+/* ===== Core app functions (clients/pjs/inventory/ledger/invoice) ===== */
+
+function saveData() {
+  localStorage.setItem('clients', JSON.stringify(clients));
+  localStorage.setItem('pjsData', JSON.stringify(pjsData));
+  localStorage.setItem('inventory', JSON.stringify(inventory));
+  localStorage.setItem('invCounter', String(invCounter));
+  renderTables();
+}
+
+function renderTables() {
+  // Clients
+  document.getElementById('clientsBody').innerHTML = clients.map((c, i) => {
+    const bal = (c.ledger || []).reduce((s,t) => s + parseFloat(t.amt || 0), 0);
+    const balColor = bal>0 ? '#e74c3c' : '#2ecc71';
+    return `<tr><td>${(c.name||'').toUpperCase()}</td><td>${c.detail||''}</td><td style="font-weight:bold; color:${balColor}">${bal.toFixed(2)}</td>
+      <td><button class="btn btn-sm" onclick="openLedger(${i})">Invoice</button> <button class="btn-del" onclick="if(confirm('Hapus?')){clients.splice(${i},1);saveData()}">×</button></td></tr>`;
+  }).join('');
+
+  // PJS
+  pjsData.sort((a,b)=> new Date(b.date)-new Date(a.date));
+  document.getElementById('pjsBody').innerHTML = pjsData.map((p, i) => `<tr><td>${p.date||''}</td><td>${(p.name||'').toUpperCase()}</td><td>${p.detail||''}</td><td>${(isFinite(parseFloat(p.amount))?parseFloat(p.amount).toFixed(2):'0.00')}</td>
+    <td><button class="btn-del" onclick="pjsData.splice(${i},1);saveData()">×</button></td></tr>`).join('');
+
+  // Inventory
+  document.getElementById('inventoryBody').innerHTML = inventory.map((it, i) => `<tr><td>${(it.name||'').toUpperCase()}</td><td>${(isFinite(parseFloat(it.price))?parseFloat(it.price).toFixed(2):'0.00')}</td>
+    <td><button class="btn-del" onclick="inventory.splice(${i},1);saveData()">×</button></td></tr>`).join('');
+}
+
+function addClient() {
+  const name = (document.getElementById('clientName').value || '').trim();
+  const fee = parseFloat(document.getElementById('clientFee').value) || 0;
+  if(!name) return alert("Sila isi nama!");
+  const clientData = { name: name.toUpperCase(), detail: document.getElementById('clientDetail').value || '', ledger: [{date: new Date().toISOString().split('T')[0], desc: "FEE PROFESSIONAL DIPERSETUJUI", amt: fee}] };
+  clients.push(clientData);
+  saveData();
+  // Optionally sync single client
+  syncToServer({ type:'GUAMAN', user: currentUser, payload: clientData }).catch(()=>{});
+  document.getElementById('clientName').value=''; document.getElementById('clientFee').value=''; document.getElementById('clientDetail').value='';
+}
+
+function addPjs() {
+  const pjsRec = { type: "PJS", date: document.getElementById('pjsDate').value, name: (document.getElementById('pjsName').value||'').toUpperCase(), detail: document.getElementById('pjsDetail').value||'', amount: document.getElementById('pjsAmount').value||'0' };
+  if(!pjsRec.name || !pjsRec.date) return alert("Sila isi tarikh & nama!");
+  pjsData.push(pjsRec);
+  saveData();
+  syncToServer({ type:'PJS', user: currentUser, payload: pjsRec }).catch(()=>{});
+  document.getElementById('pjsName').value=''; document.getElementById('pjsAmount').value=''; document.getElementById('pjsDetail').value='';
+}
+
+function openLedger(idx){
+  activeIdx = idx;
+  const c = clients[idx];
+  document.getElementById('ledgerTitle').textContent = `Fail: ${(c.name||'').toUpperCase()}`;
+  document.getElementById('ledgerDate').valueAsDate = new Date();
+  document.getElementById('ledgerModal').style.display='block';
+  renderLedger();
+}
+function closeLedger(){ document.getElementById('ledgerModal').style.display='none'; }
+
+function renderLedger() {
+  if (activeIdx === null || !clients[activeIdx]) return;
+  const c = clients[activeIdx];
+  let bal = 0;
+  document.getElementById('ledgerBody').innerHTML = (c.ledger || []).map((t, i) => {
+    bal += parseFloat(t.amt || 0);
+    const amt = parseFloat(t.amt || 0);
+    const color = amt < 0 ? 'green' : 'black';
+    return `<tr><td>${t.date||''}</td><td>${(t.desc||'').toUpperCase()}</td><td style="text-align:right; font-weight:bold; color:${color}">${amt.toFixed(2)}</td>
+      <td><button class="btn-del" onclick="clients[activeIdx].ledger.splice(${i},1);saveData();renderLedger()">×</button></td></tr>`;
+  }).join('');
+  document.getElementById('ledgerTotal').textContent = `Baki: RM ${bal.toFixed(2)}`;
+  document.getElementById('ledgerTotal').style.color = bal > 0 ? "red" : "green";
+}
+
+function addToLedger(){
+  if(activeIdx === null) return alert("Tiada pelanggan dipilih.");
+  const d = document.getElementById('ledgerDate').value;
+  const s = (document.getElementById('ledgerDesc').value||'').trim();
+  const a = parseFloat(document.getElementById('ledgerAmt').value);
+  if(!s || isNaN(a)) return alert("Sila isi keterangan & amaun!");
+  clients[activeIdx].ledger.push({ date: d, desc: s.toUpperCase(), amt: a });
+  saveData();
+  renderLedger();
+  document.getElementById('ledgerDesc').value=''; document.getElementById('ledgerAmt').value='';
+}
+
+function printFullStatement(){
+  if(activeIdx === null) return;
+  const c = clients[activeIdx];
+  const bal = (c.ledger || []).reduce((s,t)=>s+parseFloat(t.amt||0),0);
+  document.getElementById('receipt').style.display='block';
+  document.getElementById('rTitle').textContent = "PENYATA AKAUN FAIL";
+  document.getElementById('rCust').textContent = c.name || '';
+  document.getElementById('rNo').textContent = "STMT-" + Math.floor(Date.now()/1000);
+  document.getElementById('rDate').textContent = new Date().toISOString().split('T')[0];
+  document.getElementById('rTable').innerHTML = (c.ledger || []).map(t=>`<tr><td>${t.date} - ${t.desc}</td><td style="text-align:right;">${parseFloat(t.amt||0).toFixed(2)}</td></tr>`).join('');
+  document.getElementById('rTotalLabel').innerHTML = `BAKI TUNGGAKAN: <span id="rTotal">RM ${bal.toFixed(2)}</span>`;
+  window.scrollTo({top: document.body.scrollHeight, behavior:'smooth'});
+  // Optional: export statement to PDF automatically
+  exportReceiptToPDF(`STMT-${c.name}-${Date.now()}`);
+}
+
+function addItem() {
+  const name = (document.getElementById('itemName').value || '').trim();
+  const price = parseFloat(document.getElementById('itemPrice').value);
+  if(!name) return alert("Sila isi nama perkhidmatan!");
+  if(isNaN(price)) return alert("Sila isi harga yang sah!");
+  inventory.push({ name: name, price: price });
+  saveData();
+  document.getElementById('itemName').value=''; document.getElementById('itemPrice').value='';
+}
+
+/* Invoice setup & rendering */
+function setupInvoicePage(){
+  document.getElementById('invDate').valueAsDate = new Date();
+  document.getElementById('invNo').value = `RES-${new Date().getFullYear()}${String(invCounter).padStart(4,'0')}`;
+  document.getElementById('customerSelect').innerHTML = '<option value="">-- Pilih --</option>' + clients.map(c => `<option value="${encodeURIComponent(c.name||'')}">${(c.name||'').toUpperCase()}</option>`).join('') + '<option value="TUNAI">PELANGGAN TUNAI</option>';
+  document.getElementById('itemSelect').innerHTML = '<option value="">-- Tambah Servis --</option>' + inventory.map(it => `<option value='${encodeURIComponent(JSON.stringify(it))}'>${it.name} (RM${it.price})</option>`).join('');
+  currentInvoiceItems = [];
+  renderInvTable();
+}
+
+function addItemToInvoice(){
+  const val = document.getElementById('itemSelect').value;
+  if(!val) return;
+  try {
+    const it = JSON.parse(decodeURIComponent(val));
+    currentInvoiceItems.push(it);
+    renderInvTable();
+    document.getElementById('itemSelect').value = '';
+  } catch(e) { console.error('Invalid item', e); }
+}
+
+function renderInvTable(){
+  let t = 0;
+  document.getElementById('invoiceItemsBody').innerHTML = currentInvoiceItems.map((it,i) => {
+    t += parseFloat(it.price||0);
+    return `<tr><td>${(it.name||'').toUpperCase()}</td><td style="text-align:right;">${(parseFloat(it.price||0)).toFixed(2)}</td><td><button class="btn-del" onclick="currentInvoiceItems.splice(${i},1);renderInvTable()">×</button></td></tr>`;
+  }).join('');
+  document.getElementById('invTotalText').textContent = `JUMLAH: RM ${t.toFixed(2)}`;
+}
+
+/* ===== Server sync =====
+   Expected Google Apps Script:
+   - Accepts POST JSON and returns JSON (CORS enabled)
+   - Example payload: {type:'RESIT', user:'alice', payload: {...}}
+*/
+async function syncToServer(data) {
+  const url = localStorage.getItem('hma_server_url') || '';
+  if(!url) throw new Error('No server url configured.');
+  document.getElementById('statusLine').textContent = 'Menyelaraskan ke server...';
+  try {
+    const resp = await fetch(url, { method:'POST', mode:'cors', cache:'no-cache', headers: { 'Content-Type':'application/json' }, body: JSON.stringify(data) });
+    const json = await resp.json();
+    document.getElementById('statusLine').textContent = 'Sync berjaya: ' + (json && json.status ? json.status : 'OK');
+    return json;
+  } catch (e) {
+    document.getElementById('statusLine').textContent = 'Sync gagal: ' + e.message;
+    console.error('Sync error', e);
+    throw e;
+  }
+}
+
+async function syncAllToServer() {
+  if(!confirm('Hantar semua data (clients, pjs, inventory) ke server?')) return;
+  const payload = { type:'BULK_SYNC', user: currentUser, payload: { clients, pjsData, inventory } };
+  try {
+    const res = await syncToServer(payload);
+    alert('Sync selesai. Respons: ' + (res && res.status ? res.status : JSON.stringify(res)));
+  } catch(e) {
+    alert('Sync gagal: ' + e.message);
+  }
+}
+
+/* ===== Generate PDF from receipt (automatic) ===== */
+function exportReceiptToPDF(filename) {
+  // Ensure receipt visible -> html2pdf will capture element
+  const el = document.getElementById('receipt');
+  // Options tuned for A5 portrait
+  const opt = {
+    margin:       [8,10,10,10],
+    filename:     filename + '.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
+  };
+  try {
+    html2pdf().set(opt).from(el).save().then(() => {
+      document.getElementById('statusLine').textContent = 'PDF resit dimuat turun.';
+    }).catch(err => {
+      console.error('PDF export error', err);
+      document.getElementById('statusLine').textContent = 'Gagal muat turun PDF: ' + err.message;
+    });
+  } catch(e) {
+    console.error(e);
+    document.getElementById('statusLine').textContent = 'Gagal eksport PDF.';
+  }
+}
+
+/* ===== Process payment & automatic PDF + server sync ===== */
+async function processPayment(){
+  if(!currentInvoiceItems.length) return alert("Pilih item!");
+  const t = currentInvoiceItems.reduce((a,b)=> a + parseFloat(b.price||0), 0);
+  document.getElementById('receipt').style.display='block';
+  const invNo = document.getElementById('invNo').value || (`RES-${Date.now()}`);
+  const invDate = document.getElementById('invDate').value || (new Date().toISOString().split('T')[0]);
+  const custVal = document.getElementById('customerSelect').value || '';
+  let custName = custVal === 'TUNAI' ? 'PELANGGAN TUNAI' : decodeURIComponent(custVal || '');
+  document.getElementById('rTitle').textContent = "RESIT RASMI";
+  document.getElementById('rNo').textContent = invNo;
+  document.getElementById('rDate').textContent = invDate;
+  document.getElementById('rCust').textContent = (custName || '').toUpperCase();
+  document.getElementById('rTable').innerHTML = currentInvoiceItems.map(it=>`<tr><td>${(it.name||'').toUpperCase()}</td><td style="text-align:right;">${parseFloat(it.price||0).toFixed(2)}</td></tr>`).join('');
+  document.getElementById('rTotalLabel').innerHTML = `JUMLAH: <span id="rTotal">RM ${t.toFixed(2)}</span>`;
+
+  // Insert payment into ledger if customer is registered
+  if(custVal && custVal !== 'TUNAI') {
+    const cName = decodeURIComponent(custVal || '');
+    const idx = clients.findIndex(cc => (cc.name||'').toUpperCase() === cName.toUpperCase());
+    if(idx !== -1) {
+      clients[idx].ledger.push({ date: invDate, desc: `RESIT ${invNo}`, amt: -t });
+      saveData();
+    }
+  }
+
+  // Attempt server sync and capture response
+  const serverPayload = { type:'RESIT', user: currentUser, payload: { invNo, invDate, customer: custName, amount: t, items: currentInvoiceItems } };
+  let serverResp = null;
+  try {
+    serverResp = await syncToServer(serverPayload);
+  } catch(e) {
+    // already handled in syncToServer
+  }
+
+  // Increment counter and reset invoice
+  invCounter++;
+  saveData();
+
+  // Export PDF automatically
+  const filename = `${invNo}_${(custName||'Pelanggan').replace(/\s+/g,'_')}`;
+  exportReceiptToPDF(filename);
+
+  // Reset current invoice items and UI
+  currentInvoiceItems = [];
+  renderInvTable();
+  setupInvoicePage();
+
+  // Show server response if any
+  if(serverResp) {
+    alert('Resit disimpan dan diselaraskan. Respons server: ' + (serverResp.message || JSON.stringify(serverResp)));
+  } else {
+    // If no server or failed
+    document.getElementById('statusLine').textContent = 'Resit disimpan secara tempatan.';
+  }
+}
+
+/* ===== CSV export/import (keperluan sebelumnya) ===== */
+function exportData(key, headers) {
+  const data = JSON.parse(localStorage.getItem(key) || '[]');
+  const mappedHeaders = headers.map(h=>h.toLowerCase());
+  let csv = "\ufeff" + headers.join(",") + "\n";
+  if(key==='clients') {
+    data.forEach(row=>{
+      const bal = (row.ledger||[]).reduce((s,t)=>s+parseFloat(t.amt||0),0);
+      csv += `"${row.name||''}","${row.detail||''}","${bal.toFixed(2)}"\n`;
+    });
+  } else {
+    data.forEach(row=>{
+      csv += mappedHeaders.map(h=>`"${String(row[h]!==undefined?row[h]:(row[h.toLowerCase()]||'')).replace(/"/g,'""')}"`).join(",") + "\n";
+    });
+  }
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `HMA_${key}.csv`; a.click();
+}
+
+function importData(event, key) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const lines = e.target.result.split(/\r?\n/).filter(Boolean);
+    if(lines.length<1) return alert('Fail kosong.');
+    const headers = lines[0].replace("\ufeff","`).split(",");
+    const result = [];
+    for(let i=1;i<lines.length;i++){
+      const cols = lines[i].split(/,(?=(?:(?:[^"]*\"){2})*[^\"]*$)/).map(v=>v.replace(/^"|"$/g,'').trim());
+      if(cols.length === headers.length){
+        let obj = {}; headers.forEach((h, idx)=> obj[h.toLowerCase()] = cols[idx]);
+        if(key==='clients') obj.ledger = [{date:new Date().toISOString().split('T')[0], desc: "FEE PROFESSIONAL", amt: parseFloat(obj.fee||obj.balance)||0}];
+        result.push(obj);
+      }
+    }
+    if(result.length===0) return alert('Tiada rekod sah.');
+    if(confirm(`Import ${result.length} rekod?`)){
+      if(key==='clients') clients = result;
+      if(key==='pjsData') pjsData = result;
+      if(key==='inventory') inventory = result;
+      saveData();
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ===== Helper: click outside modal to close ===== */
+window.onclick = function(e) {
+  ['loginModal','settingsModal','ledgerModal'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && e.target === el) el.style.display = 'none';
+  });
+};
+
+/* ===== Navigation helper ===== */
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const page = document.getElementById('page-'+id);
+  if(page) page.classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  const nav = document.getElementById('nav-'+id);
+  if(nav) nav.classList.add('active');
+  if(id==='invoice') setupInvoicePage();
+}
+
+/* Expose for debugging in console if needed */
+window._HMA = { clients, pjsData, inventory, users, currentUser };
+
+</script>
+</body>
+</html>
